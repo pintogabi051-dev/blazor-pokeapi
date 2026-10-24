@@ -1,0 +1,77 @@
+@page "/pokemon"
+@inject HttpClient Http
+@using BlazorPokeApi.Models
+@using Newtonsoft.Json
+
+<h3>Detalhes do Pokémon</h3>
+
+@if (isLoading)
+{
+    <p><em>Carregando dados do Ditto...</em></p>
+}
+else if (pokemon == null)
+{
+    <div class="alert alert-danger" role="alert">
+        Não foi possível carregar ou desserializar os dados da API.
+    </div>
+}
+else
+{
+    <div class="card" style="width: 18rem;">
+        @if (!string.IsNullOrEmpty(pokemon.sprites?.front_default))
+        {
+            <img src="@pokemon.sprites.front_default" class="card-img-top" alt="@pokemon.name">
+        }
+        <div class="card-body">
+            <h5 class="card-title text-capitalize">@pokemon.name (ID: @pokemon.id)</h5>
+            <p class="card-text">
+                <strong>Altura:</strong> @pokemon.height <br />
+                <strong>Peso:</strong> @pokemon.weight <br />
+                <strong>Experiência Base:</strong> @pokemon.base_experience
+            </p>
+
+            <h6>Habilidades:</h6>
+            <ul>
+                @foreach (var ab in pokemon.abilities)
+                {
+                    <li>
+                        <span class="text-capitalize">@ab.ability?.name</span>
+                        @if (ab.is_hidden)
+                        {
+                            <span class="badge bg-secondary">Oculta</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+@code {
+    private Root? pokemon;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 1. Buscamos o JSON puro como string
+            var jsonString = await Http.GetStringAsync("https://pokeapi.co/api/v2/pokemon/ditto");
+
+            // 2. Desserializamos manualmente usando o JsonConvert (compatível com [JsonProperty])
+            if (!string.IsNullOrEmpty(jsonString))
+            {
+                pokemon = JsonConvert.DeserializeObject<Root>(jsonString);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Erro ao consumir a API: {ex.Message}");
+            pokemon = null;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
